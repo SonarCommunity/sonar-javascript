@@ -176,7 +176,7 @@ export class LinterWrapper {
     };
     const options = { filename: filePath, allowInlineConfig: false };
     const messages = this.linter.verify(sourceCode, config, options);
-    return transformMessages(messages, { sourceCode, rules });
+    return transformMessages(messages, { sourceCode, rules, filePath });
   }
 
   /**

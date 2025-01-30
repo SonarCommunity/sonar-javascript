@@ -215,6 +215,7 @@ describe('router', () => {
         "Remove this conditional structure or edit its code blocks so that they're not all the same.",
       quickFixes: [],
       secondaryLocations: [],
+      ruleESLintKey: 'sonarjs/S3923',
     });
   });
 
@@ -238,6 +239,7 @@ describe('router', () => {
         "Remove this conditional structure or edit its code blocks so that they're not all the same.",
       quickFixes: [],
       secondaryLocations: [],
+      ruleESLintKey: 'sonarjs/S3923',
     });
   });
 

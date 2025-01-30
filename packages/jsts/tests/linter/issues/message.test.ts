@@ -36,7 +36,7 @@ describe('convertMessage', () => {
       rules: { [`sonarjs/${ruleId}`]: 'error' },
     });
 
-    expect(convertMessage(sourceCode, message)).toEqual({
+    expect(convertMessage(sourceCode, message, 'foo.bar')).toEqual({
       ruleId,
       line: 1,
       column: 9,
@@ -60,12 +60,14 @@ describe('convertMessage', () => {
         },
       ],
       secondaryLocations: [],
+      ruleESLintKeys: ['sonarjs/S1116'],
+      filePath: 'foo.bar',
     });
   });
 
   it('should return null when an ESLint message is missing a rule id', () => {
     console.error = mock.fn();
-    expect(convertMessage({} as SourceCode, {} as Linter.LintMessage)).toEqual(null);
+    expect(convertMessage({} as SourceCode, {} as Linter.LintMessage, '')).toEqual(null);
     const logs = (console.error as Mock<typeof console.error>).mock.calls.map(
       call => call.arguments[0],
     );

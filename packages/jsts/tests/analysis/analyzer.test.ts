@@ -457,6 +457,7 @@ describe('analyzeJSTS', () => {
         message: 'Octal literals should not be used.',
         quickFixes: [],
         secondaryLocations: [],
+        ruleESLintKeys: ['sonarjs/S1314'],
       },
     ]);
   });

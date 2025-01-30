@@ -18,11 +18,7 @@ package org.sonar.plugins.javascript.analysis;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonar.api.batch.fs.InputFile;
@@ -48,7 +44,9 @@ public class AnalysisWithProgram extends AbstractAnalysis {
   }
 
   @Override
-  void analyzeFiles(List<InputFile> inputFiles) throws IOException {
+  List<BridgeServer.Issue> analyzeFiles(List<InputFile> inputFiles) throws IOException {
+    var issues = new ArrayList<BridgeServer.Issue>();
+
     var tsConfigs = TsConfigProvider.getTsConfigs(contextUtils, this::createTsConfigFile);
     progressReport = new ProgressReport(PROGRESS_REPORT_TITLE, PROGRESS_REPORT_PERIOD);
     progressReport.start(inputFiles.size(), inputFiles.iterator().next().toString());
@@ -99,7 +97,7 @@ public class AnalysisWithProgram extends AbstractAnalysis {
         );
         for (var f : skippedFiles) {
           LOG.debug("File not part of any tsconfig.json: {}", f);
-          analyzeFile(f, null, null, false);
+          issues.addAll(analyzeFile(f, null, null, false));
         }
       }
       success = true;
@@ -119,6 +117,8 @@ public class AnalysisWithProgram extends AbstractAnalysis {
         progressReport.cancel();
       }
     }
+
+    return issues;
   }
 
   private void analyzeProgram(TsProgram program, Set<InputFile> analyzedFiles) throws IOException {
