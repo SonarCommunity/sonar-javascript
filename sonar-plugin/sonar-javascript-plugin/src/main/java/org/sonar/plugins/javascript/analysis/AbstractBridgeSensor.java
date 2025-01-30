@@ -32,7 +32,10 @@ import org.sonar.plugins.javascript.analysis.cache.CacheStrategies;
 import org.sonar.plugins.javascript.bridge.BridgeServer;
 import org.sonar.plugins.javascript.bridge.BridgeServerConfig;
 import org.sonar.plugins.javascript.bridge.ServerAlreadyFailedException;
+import org.sonar.plugins.javascript.external.EslintReportSensor;
+import org.sonar.plugins.javascript.external.ExternalIssueRepository;
 import org.sonar.plugins.javascript.nodejs.NodeCommandException;
+import org.sonar.plugins.javascript.rules.EslintRulesDefinition;
 import org.sonar.plugins.javascript.utils.Exclusions;
 
 public abstract class AbstractBridgeSensor implements Sensor {
@@ -61,6 +64,10 @@ public abstract class AbstractBridgeSensor implements Sensor {
     this.contextUtils = new ContextUtils(context);
     environments = Arrays.asList(context.config().getStringArray(JavaScriptPlugin.ENVIRONMENTS));
     globals = Arrays.asList(context.config().getStringArray(JavaScriptPlugin.GLOBALS));
+
+    var esLintReporter = new EslintReportSensor();
+    var externalIssues = esLintReporter.execute(context);
+
     try {
       List<InputFile> inputFiles = getInputFiles();
       if (inputFiles.isEmpty()) {
@@ -68,7 +75,27 @@ public abstract class AbstractBridgeSensor implements Sensor {
         return;
       }
       bridgeServer.startServerLazily(BridgeServerConfig.fromSensorContext(context));
-      analyzeFiles(inputFiles);
+      var issues = analyzeFiles(inputFiles);
+
+      // at that point, we have the list of issues that were registered
+      // we can register the ESLint issues that have not already been registered
+      for (var externalIssue : externalIssues) {
+        var registeredIssue = issues
+          .stream()
+          .filter(issue -> {
+            // todo: assert location and filename
+            return issue.ruleESLintKeys().contains(externalIssue.name());
+          })
+          .findFirst();
+
+        if (registeredIssue.isEmpty()) {
+          ExternalIssueRepository.save(
+            externalIssue,
+            context,
+            EslintRulesDefinition.REPOSITORY_KEY
+          );
+        }
+      }
     } catch (CancellationException e) {
       // do not propagate the exception
       LOG.info(e.toString());
@@ -103,7 +130,11 @@ public abstract class AbstractBridgeSensor implements Sensor {
     LOG.error(msg, e);
   }
 
-  protected abstract void analyzeFiles(List<InputFile> inputFiles) throws IOException;
+  /**
+   * Analyze the passed input files, register issues to the instance context, and return the list of registered issues
+   */
+  protected abstract List<BridgeServer.Issue> analyzeFiles(List<InputFile> inputFiles)
+    throws IOException;
 
   protected abstract List<InputFile> getInputFiles();
 }

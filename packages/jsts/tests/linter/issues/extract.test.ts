@@ -36,6 +36,7 @@ describe('extract', () => {
           references: [{ startLine: 10, startCol: 20, endLine: 30, endCol: 40 }],
         }),
         secondaryLocations: [],
+        ruleESLintKeys: [],
       },
     ];
     expect(extractHighlightedSymbols(issues)).toEqual({
@@ -56,6 +57,7 @@ describe('extract', () => {
         column: 2,
         message: '42',
         secondaryLocations: [],
+        ruleESLintKeys: [],
       },
     ];
     expect(extractCognitiveComplexity(issues)).toEqual(42);
@@ -69,6 +71,7 @@ describe('extract', () => {
         column: 2,
         message: 'nan',
         secondaryLocations: [],
+        ruleESLintKeys: [],
       },
     ];
     expect(extractCognitiveComplexity(issues)).toEqual(undefined);
@@ -89,6 +92,7 @@ describe('extract', () => {
           references: [{ startLine: 10, startCol: 20, endLine: 30, endCol: 40 }],
         }),
         secondaryLocations: [],
+        ruleESLintKeys: [],
       },
       {
         ruleId: 'non-extracted-rule',
@@ -96,6 +100,7 @@ describe('extract', () => {
         column: 2,
         message: 'non-extract-message',
         secondaryLocations: [],
+        ruleESLintKeys: [],
       },
       {
         ruleId: cognitiveComplexityRule.ruleId,
@@ -103,6 +108,7 @@ describe('extract', () => {
         column: 2,
         message: '42',
         secondaryLocations: [],
+        ruleESLintKeys: [],
       },
     ];
     extractHighlightedSymbols(issues);
@@ -114,6 +120,7 @@ describe('extract', () => {
         column: 2,
         message: 'non-extract-message',
         secondaryLocations: [],
+        ruleESLintKeys: [],
       },
     ]);
   });

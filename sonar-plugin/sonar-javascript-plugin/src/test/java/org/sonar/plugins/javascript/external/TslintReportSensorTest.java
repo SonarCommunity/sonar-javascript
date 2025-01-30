@@ -79,29 +79,28 @@ class TslintReportSensorTest {
   }
 
   @Test
-  void should_add_issues_from_report() {
+  void should_create_issues_from_report() {
     logTester.setLevel(Level.DEBUG);
     setTslintReport(TSLINT_REPORT_FILE_NAME);
-    tslintReportSensor.execute(context);
+    var issues = tslintReportSensor.execute(context);
 
-    Collection<ExternalIssue> externalIssues = context.allExternalIssues();
-    assertThat(externalIssues).hasSize(2);
-    Iterator<ExternalIssue> iterator = externalIssues.iterator();
-    ExternalIssue first = iterator.next();
-    ExternalIssue second = iterator.next();
+    assertThat(issues).hasSize(2);
+    var iterator = issues.iterator();
+    var first = iterator.next();
+    var second = iterator.next();
 
     assertThat(first.type()).isEqualTo(RuleType.CODE_SMELL);
     assertThat(second.type()).isEqualTo(RuleType.BUG);
 
-    assertThat(first.remediationEffort()).isEqualTo(5);
+    assertThat(first.effort()).isEqualTo(5);
     assertThat(first.severity()).isEqualTo(Severity.MAJOR);
-    assertThat(first.primaryLocation().message()).isEqualTo("Missing semicolon");
-    assertThat(first.primaryLocation().textRange().start().line()).isEqualTo(1);
-
-    assertThat(logTester.logs(Level.DEBUG)).containsExactlyInAnyOrder(
-      "Saving external TSLint issue { file:\"myFile.ts\", id:semicolon, message:\"Missing semicolon\", line:1, offset:0, type: CODE_SMELL }",
-      "Saving external TSLint issue { file:\"myFile.ts\", id:curly, message:\"misplaced opening brace\", line:3, offset:0, type: BUG }"
-    );
+    assertThat(first.message()).isEqualTo("Missing semicolon");
+    assertThat(first.location().start().line()).isEqualTo(1);
+    // todo: move to Analysis sensor test
+    //    assertThat(logTester.logs(Level.DEBUG)).containsExactlyInAnyOrder(
+    //      "Saving external TSLint issue { file:\"myFile.ts\", id:semicolon, message:\"Missing semicolon\", line:1, offset:0, type: CODE_SMELL }",
+    //      "Saving external TSLint issue { file:\"myFile.ts\", id:curly, message:\"misplaced opening brace\", line:3, offset:0, type: BUG }"
+    //    );
   }
 
   @Test
@@ -136,9 +135,9 @@ class TslintReportSensorTest {
       writer.write(String.format(report, inputFile.absolutePath()));
     }
     setTslintReport(reportFile.getAbsolutePath());
-    tslintReportSensor.execute(context);
+    var issues = tslintReportSensor.execute(context);
 
-    assertThat(context.allExternalIssues()).hasSize(1);
+    assertThat(issues).hasSize(1);
   }
 
   @Test
@@ -163,9 +162,9 @@ class TslintReportSensorTest {
   @Test
   void should_log_when_not_found_input_file() {
     setTslintReport("invalid-tslint-report.json");
-    tslintReportSensor.execute(context);
+    var issues = tslintReportSensor.execute(context);
 
-    assertThat(context.allExternalIssues()).hasSize(1);
+    assertThat(issues).hasSize(1);
     assertThat(logTester.logs(Level.WARN)).contains(
       "No input file found for not-exist.ts. No TSLint issues will be imported on this file."
     );
@@ -174,23 +173,15 @@ class TslintReportSensorTest {
   @Test
   void should_accept_absolute_path_to_report() {
     setTslintReport(new File(BASE_DIR, TSLINT_REPORT_FILE_NAME).getAbsolutePath());
-    tslintReportSensor.execute(context);
-    assertThat(context.allExternalIssues()).hasSize(2);
+    var issues = tslintReportSensor.execute(context);
+    assertThat(issues).hasSize(2);
   }
 
   @Test
   void should_accept_several_reports() {
     setTslintReport("tslint-report.json, invalid-tslint-report.json");
-    tslintReportSensor.execute(context);
-    assertThat(context.allExternalIssues()).hasSize(3);
-  }
-
-  @Test
-  void test_descriptor() {
-    DefaultSensorDescriptor sensorDescriptor = new DefaultSensorDescriptor();
-    tslintReportSensor.describe(sensorDescriptor);
-    assertThat(sensorDescriptor.name()).isEqualTo("Import of TSLint issues");
-    assertThat(sensorDescriptor.languages()).isEmpty();
+    var issues = tslintReportSensor.execute(context);
+    assertThat(issues).hasSize(3);
   }
 
   private void setTslintReport(String reportFileName) {

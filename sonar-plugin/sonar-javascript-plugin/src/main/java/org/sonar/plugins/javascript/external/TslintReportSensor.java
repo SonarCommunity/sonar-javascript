@@ -23,15 +23,14 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonar.api.batch.fs.InputFile;
-import org.sonar.api.batch.fs.TextPointer;
 import org.sonar.api.batch.fs.TextRange;
 import org.sonar.api.batch.sensor.SensorContext;
-import org.sonar.api.batch.sensor.issue.NewExternalIssue;
-import org.sonar.api.batch.sensor.issue.NewIssueLocation;
 import org.sonar.api.rules.RuleType;
 import org.sonar.plugins.javascript.rules.TslintRulesDefinition;
 
@@ -50,8 +49,10 @@ public class TslintReportSensor extends AbstractExternalIssuesSensor {
   }
 
   @Override
-  void importReport(File report, SensorContext context) {
+  List<Issue> importReport(File report, SensorContext context) {
     LOG.info("Importing {}", report.getAbsoluteFile());
+    var results = new ArrayList<Issue>();
+
     try (
       InputStreamReader inputStreamReader = new InputStreamReader(
         new FileInputStream(report),
@@ -60,51 +61,63 @@ public class TslintReportSensor extends AbstractExternalIssuesSensor {
     ) {
       TslintError[] tslintErrors = gson.fromJson(inputStreamReader, TslintError[].class);
       for (TslintError tslintError : tslintErrors) {
-        saveTslintError(context, tslintError);
+        InputFile inputFile = getInputFile(context, tslintError.name);
+
+        if (inputFile != null) {
+          results.add(createIssue(context, tslintError, inputFile));
+        }
       }
     } catch (IOException e) {
       LOG.error(FILE_EXCEPTION_MESSAGE, e);
     }
+
+    return results;
   }
 
-  private void saveTslintError(SensorContext context, TslintError tslintError) {
+  private Issue createIssue(SensorContext context, TslintError tslintError, InputFile inputFile) {
     String tslintKey = tslintError.ruleName;
 
-    InputFile inputFile = getInputFile(context, tslintError.name);
-    if (inputFile == null) {
-      return;
-    }
-
     TextRange location = getLocation(tslintError, inputFile);
-    TextPointer start = location.start();
     RuleType ruleType = TslintRulesDefinition.ruleType(tslintKey);
 
-    LOG.debug(
-      "Saving external TSLint issue { file:\"{}\", id:{}, message:\"{}\", line:{}, offset:{}, type: {} }",
-      tslintError.name,
+    // todo: move
+    //    LOG.debug(
+    //      "Saving external TSLint issue { file:\"{}\", id:{}, message:\"{}\", line:{}, offset:{}, type: {} }",
+    //      tslintError.name,
+    //      tslintKey,
+    //      tslintError.failure,
+    //      start.line(),
+    //      start.lineOffset(),
+    //      ruleType
+    //    );
+
+    //    NewExternalIssue newExternalIssue = context.newExternalIssue();
+
+    //    NewIssueLocation primaryLocation = newExternalIssue
+    //      .newLocation()
+    //      .message(tslintError.failure)
+    //      .on(inputFile)
+    //      .at(location);
+    //
+    //    newExternalIssue
+    //      .at(primaryLocation)
+    //      .engineId(TslintRulesDefinition.REPOSITORY_KEY)
+    //      .ruleId(tslintKey)
+    //      .type(ruleType)
+    //      .severity(DEFAULT_SEVERITY)
+    //      .remediationEffortMinutes(DEFAULT_REMEDIATION_COST);
+
+    var issue = new Issue(
       tslintKey,
+      inputFile,
+      location,
+      ruleType,
       tslintError.failure,
-      start.line(),
-      start.lineOffset(),
-      ruleType
+      DEFAULT_SEVERITY,
+      (double) DEFAULT_REMEDIATION_COST
     );
 
-    NewExternalIssue newExternalIssue = context.newExternalIssue();
-
-    NewIssueLocation primaryLocation = newExternalIssue
-      .newLocation()
-      .message(tslintError.failure)
-      .on(inputFile)
-      .at(location);
-
-    newExternalIssue
-      .at(primaryLocation)
-      .engineId(TslintRulesDefinition.REPOSITORY_KEY)
-      .ruleId(tslintKey)
-      .type(ruleType)
-      .severity(DEFAULT_SEVERITY)
-      .remediationEffortMinutes(DEFAULT_REMEDIATION_COST)
-      .save();
+    return issue;
   }
 
   private static TextRange getLocation(TslintError tslintError, InputFile inputFile) {

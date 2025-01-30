@@ -60,6 +60,7 @@ describe('convertMessage', () => {
         },
       ],
       secondaryLocations: [],
+      ruleESLintKeys: ['sonarjs/S1116'],
     });
   });
 
