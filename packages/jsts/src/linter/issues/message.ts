@@ -49,5 +49,6 @@ export function convertMessage(source: SourceCode, message: Linter.LintMessage):
     message: message.message,
     quickFixes: transformFixes(source, message),
     secondaryLocations: [],
+    ruleESLintKeys: [message.ruleId],
   };
 }

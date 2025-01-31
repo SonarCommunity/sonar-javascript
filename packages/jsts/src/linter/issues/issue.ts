@@ -43,4 +43,5 @@ export interface Issue {
   cost?: number;
   secondaryLocations: Location[];
   quickFixes?: QuickFix[];
+  ruleESLintKeys: Array<string>;
 }
